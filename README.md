@@ -4,9 +4,9 @@
 - [x] Render circle
 - [x] Render checker board pattern
 - [x] Move player on update
-- [ ] Track current direction & next direction
-- [ ] Keyboard input changes next direction
-- [ ] Change direction at next cell
+- [x] Track current direction & next direction
+- [x] Keyboard input changes next direction
+- [x] Change direction at next cell
 - [ ] Start with body of 3 units
 - [ ] Chain player segment cell/pos on update (linked list?)
 - [ ] AABB food cell collision
