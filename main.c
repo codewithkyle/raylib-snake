@@ -24,11 +24,12 @@ typedef float f32;
 #define WIDTH (16*FACTOR)
 #define HEIGHT (9*FACTOR)
 #define CELL_SIZE 12
-#define SPEED 150
+#define SPEED 0.25f
 
 typedef struct {
     Vector2 position;
     Vector2 cell;
+    Vector2 target;
     u8 direction;
     u8 next_direction;
 } Player;
@@ -41,10 +42,11 @@ typedef struct {
 static Player player = { 
     .position = { .x = CELL_SIZE*50, .y = CELL_SIZE*50 }, 
     .cell = { .x = 50, .y = 50 },
+    .target = { .x = 50, .y = 49 },
     .direction = 1,
     .next_direction = 1,
 };
-static Vector2 player_velocity = {0,SPEED*-1};
+static Vector2 player_velocity = {0,-CELL_SIZE};
 
 void game_init()
 {
@@ -64,7 +66,7 @@ void render_background()
             }
             else
             {
-                DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){32,32,32,255});
+                DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){24,24,24,255});
             }
         }
     }
@@ -121,46 +123,78 @@ void game_update(f32 dt)
     BeginDrawing();
     ClearBackground((Color){18,18,18,255});
 
+    player.position = Vector2Add(player.position, Vector2Scale(player_velocity, SPEED));
+    player.cell.x = (int)(player.position.x/CELL_SIZE);
+    player.cell.y = (int)(player.position.y/CELL_SIZE);
 
     if (
-        player.direction != player.next_direction && 
-        ((int)player.position.x % CELL_SIZE) == 0 && 
-        ((int)player.position.y % CELL_SIZE) == 0
+       (int)player.cell.x == (int)player.target.x &&
+       (int)player.cell.y == (int)player.target.y
     )
     {
         player.direction = player.next_direction;
-        player.position.x = (int)player.position.x;
-        player.position.y = (int)player.position.y;
         switch(player.direction){
             case 1:
                 player_velocity.x = 0;
-                player_velocity.y = SPEED*-1;
+                player_velocity.y = -CELL_SIZE;
+                player.target.x = player.cell.x;
+                player.target.y = player.cell.y - 1;
+                player.position.x = player.cell.x * CELL_SIZE;
                 break;
             case 2:
-                player_velocity.x = SPEED;
+                player_velocity.x = CELL_SIZE;
                 player_velocity.y = 0;
+                player.target.x = player.cell.x + 1;
+                player.target.y = player.cell.y;
+                player.position.y = player.cell.y * CELL_SIZE;
                 break;
             case 3:
                 player_velocity.x = 0;
-                player_velocity.y = SPEED;
+                player_velocity.y = CELL_SIZE;
+                player.target.x = player.cell.x;
+                player.target.y = player.cell.y + 1;
+                player.position.x = player.cell.x * CELL_SIZE;
                 break;
             case 4:
-                player_velocity.x = SPEED*-1;
+                player_velocity.x = -CELL_SIZE;
                 player_velocity.y = 0;
+                player.target.x = player.cell.x - 1;
+                player.target.y = player.cell.y;
+                player.position.y = player.cell.y * CELL_SIZE;
                 break;
             default:
                 break;
         }
     }
 
-    Vector2 new_player_position = Vector2Add(player.position, Vector2Scale(player_velocity, dt));
-    player.position.x = new_player_position.x;
-    player.position.y = new_player_position.y;
+    i32 xOffset = 0;
+    i32 yOffset = 0;
+    switch(player.direction){
+        case 1:
+            yOffset = -CELL_SIZE*0.25;
+            break;
+        case 2:
+            xOffset = CELL_SIZE*0.25;
+            break;
+        case 3:
+            yOffset = CELL_SIZE*0.25;
+            break;
+        case 4:
+            xOffset = -CELL_SIZE*0.25;
+            break;
+        default:
+            break;
+    }
 
     render_background();
 
+    // Player target cell
+    //DrawRectangle(player.target.x*CELL_SIZE, player.target.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, BLUE);
+    //DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
+
     // Player
-    DrawRectangle(player.position.x, player.position.y, CELL_SIZE, CELL_SIZE, RED);
+    DrawRectangle(player.position.x+xOffset, player.position.y+yOffset, CELL_SIZE, CELL_SIZE, RED);
+
 
     // Food
     Food food = create_food(10, 10);
