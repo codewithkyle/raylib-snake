@@ -23,6 +23,11 @@ document.addEventListener("visibilitychange", ()=>{
 
 WebAssembly.instantiateStreaming(fetch("main.wasm"), {
     env: make_env({
+        TraceLog: (level, format, text_ptr) => {
+            const buffer = wasm.instance.exports.memory.buffer;
+            const text = cstr_by_ptr(buffer, text_ptr);
+            console.log(text);
+        },
         BeginDrawing: ()=>{},
         EndDrawing: ()=>{},
         InitWindow: (width, height, text_ptr) => {
@@ -87,6 +92,11 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
     const backCanvas = new OffscreenCanvas(WIDTH, HEIGHT);
     backCtx = backCanvas.getContext("2d");
     backCtx.imageSmoothingEnabled = false;
+
+    window.addEventListener("keydown", (e)=>{
+        wasm.instance.exports.game_keydown(e.keyCode);
+    });
+
     wasm.instance.exports.game_init();
     window.requestAnimationFrame(first);
 }).catch((e) => {

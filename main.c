@@ -29,6 +29,8 @@ typedef float f32;
 typedef struct {
     Vector2 position;
     Vector2 cell;
+    u8 direction;
+    u8 next_direction;
 } Player;
 
 typedef struct {
@@ -36,7 +38,12 @@ typedef struct {
     Vector2 cell;
 } Food;
 
-static Player player = { .position = { .x = CELL_SIZE*50, .y = CELL_SIZE*50 }, .cell = { .x = 50, .y = 50 } };
+static Player player = { 
+    .position = { .x = CELL_SIZE*50, .y = CELL_SIZE*50 }, 
+    .cell = { .x = 50, .y = 50 },
+    .direction = 1,
+    .next_direction = 1,
+};
 static Vector2 player_velocity = {0,SPEED*-1};
 
 void game_init()
@@ -72,10 +79,79 @@ Food create_food(i32 cell_x, i32 cell_y)
     return food;
 }
 
+void game_keydown(i32 key)
+{
+    switch(key)
+    {
+        case 75:
+        case 38:
+        case 87:
+            if (player.direction != 3) {
+                player.next_direction = 1;
+            }
+            break;
+        case 74:
+        case 40:
+        case 83:
+            if (player.direction != 1) {
+                player.next_direction = 3;
+            }
+            break;
+        case 72:
+        case 37:
+        case 65:
+            if (player.direction != 2) {
+                player.next_direction = 4;
+            }
+            break;
+        case 76:
+        case 39:
+        case 68:
+            if (player.direction != 4) {
+                player.next_direction = 2;
+            }
+            break;
+        default:
+            break;
+    }
+}
+
 void game_update(f32 dt)
 {
     BeginDrawing();
     ClearBackground((Color){18,18,18,255});
+
+
+    if (
+        player.direction != player.next_direction && 
+        ((int)player.position.x % CELL_SIZE) == 0 && 
+        ((int)player.position.y % CELL_SIZE) == 0
+    )
+    {
+        player.direction = player.next_direction;
+        player.position.x = (int)player.position.x;
+        player.position.y = (int)player.position.y;
+        switch(player.direction){
+            case 1:
+                player_velocity.x = 0;
+                player_velocity.y = SPEED*-1;
+                break;
+            case 2:
+                player_velocity.x = SPEED;
+                player_velocity.y = 0;
+                break;
+            case 3:
+                player_velocity.x = 0;
+                player_velocity.y = SPEED;
+                break;
+            case 4:
+                player_velocity.x = SPEED*-1;
+                player_velocity.y = 0;
+                break;
+            default:
+                break;
+        }
+    }
 
     Vector2 new_player_position = Vector2Add(player.position, Vector2Scale(player_velocity, dt));
     player.position.x = new_player_position.x;
