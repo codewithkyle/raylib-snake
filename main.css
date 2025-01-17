@@ -8,21 +8,21 @@ body {
 canvas {
     position: absolute;
     aspect-ratio: 16/9;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    /*top: 50%;*/
+    /*left: 50%;*/
+    /*transform: translate(-50%, -50%);*/
 }
-/*@media (min-aspect-ratio: 16/9) {*/
-    /*canvas{*/
-        /*height: 100%;*/
-        /*left: 50%;*/
-        /*transform: translate(-50%, 0%);*/
-    /*}*/
-/*}*/
-/*@media not (min-aspect-ratio: 16/9) {*/
-    /*canvas {*/
-        /*width: 100%;*/
-        /*top: 50%;*/
-        /*transform: translate(0%, -50%);*/
-    /*}*/
-/*}*/
+@media (min-aspect-ratio: 16/9) {
+    canvas{
+        height: 100%;
+        left: 50%;
+        transform: translate(-50%, 0%);
+    }
+}
+@media not (min-aspect-ratio: 16/9) {
+    canvas {
+        width: 100%;
+        top: 50%;
+        transform: translate(0%, -50%);
+    }
+}
