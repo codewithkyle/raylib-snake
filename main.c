@@ -47,6 +47,10 @@ static Player player = {
     .next_direction = 1,
 };
 static Vector2 player_velocity = {0,-CELL_SIZE};
+static bool game_over = false;
+
+__attribute__((import_module("env"), import_name("GameOver")))
+void GameOver(void);
 
 void game_init()
 {
@@ -186,15 +190,27 @@ void game_update(f32 dt)
             break;
     }
 
+
+    if (
+        player.position.x < 0 || player.position.x >= WIDTH ||
+        player.position.y < 0 || player.position.y >= HEIGHT
+    )
+    {
+        game_over = true;
+        GameOver();
+    }
+
     render_background();
 
-    // Player target cell
-    //DrawRectangle(player.target.x*CELL_SIZE, player.target.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, BLUE);
-    //DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
+    if (!game_over)
+    {
+        // Player target cell
+        //DrawRectangle(player.target.x*CELL_SIZE, player.target.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, BLUE);
+        //DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
 
-    // Player
-    DrawRectangle(player.position.x+xOffset, player.position.y+yOffset, CELL_SIZE, CELL_SIZE, RED);
-
+        // Player
+        DrawRectangle(player.position.x+xOffset, player.position.y+yOffset, CELL_SIZE, CELL_SIZE, RED);
+    }
 
     // Food
     Food food = create_food(10, 10);
@@ -204,6 +220,8 @@ void game_update(f32 dt)
 }
 
 #ifdef PLATFORM_NATIVE
+void GameOver(){}
+
 int main(void)
 {
     game_init();
