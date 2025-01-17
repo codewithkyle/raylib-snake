@@ -18,11 +18,8 @@ void game_init()
     SetTargetFPS(60);
 }
 
-void game_update(f32 dt)
+void render_background()
 {
-    BeginDrawing();
-    ClearBackground((Color){18,18,18,255});
-    
     for (i32 y = 0; y < HEIGHT; y+=CELL_SIZE)
     {
         for(i32 x = 0; x < WIDTH; x+=CELL_SIZE)
@@ -37,9 +34,21 @@ void game_update(f32 dt)
             }
         }
     }
+}
 
+void game_update(f32 dt)
+{
+    BeginDrawing();
+    ClearBackground((Color){18,18,18,255});
+
+    render_background();
+
+    // Player
     DrawRectangle(12*20, 12*20, CELL_SIZE, CELL_SIZE, RED);
+
+    // Food
     DrawCircle(12*5-7, 12*5-7, CELL_SIZE*0.5, GREEN);
+
     EndDrawing();
 }
 
