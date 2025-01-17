@@ -28,6 +28,10 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             const text = cstr_by_ptr(buffer, text_ptr);
             console.log(text);
         },
+        GameOver: ()=>{
+            window.alert("Game Over! Restart?");
+            location.reload();
+        },
         BeginDrawing: ()=>{},
         EndDrawing: ()=>{},
         InitWindow: (width, height, text_ptr) => {
