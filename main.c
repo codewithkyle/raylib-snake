@@ -22,6 +22,7 @@ void game_update(f32 dt)
     BeginDrawing();
     ClearBackground((Color){18,18,18,255});
     DrawRectangle(WIDTH*0.5, HEIGHT*0.5, 100, 100, RED);
+    DrawCircle(100, 100, 500, BLUE);
     EndDrawing();
 }
 

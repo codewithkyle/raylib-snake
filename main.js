@@ -26,7 +26,6 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
         BeginDrawing: ()=>{},
         EndDrawing: ()=>{},
         InitWindow: (width, height, text_ptr) => {
-            console.log("InitWindow", width, height, text_ptr);
             const buffer = wasm.instance.exports.memory.buffer;
             const text = cstr_by_ptr(buffer, text_ptr);
             document.title = text;
@@ -42,7 +41,6 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             }
         },
         DrawRectangle: (start_x, start_y, w, h, color_ptr) => {
-            console.log("Draw rect", start_x, start_y, w, h);
             const buffer = wasm.instance.exports.memory.buffer;
             const [r,g,b,a] = new Uint8Array(buffer, color_ptr, 4);
             for (let y = 0; y < h; y++){
@@ -52,6 +50,27 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
                     backImageData.data[idx + 1] = g;
                     backImageData.data[idx + 2] = b;
                     backImageData.data[idx + 3] = a;
+                }
+            }
+        },
+        DrawCircle: (start_x, start_y, rad, color_ptr) => {
+            const buffer = wasm.instance.exports.memory.buffer;
+            const [r,g,b,a] = new Uint8Array(buffer, color_ptr, 4);
+            for (let y = start_y - rad; y <= start_y + rad; y++){
+                if (y < 0 || y >= HEIGHT) continue;
+                for (let x = start_x - rad; x <= start_x + rad; x++) {
+                    if (x < 0 || x >= WIDTH) continue;
+                    const dx = x - start_x;
+                    const dy = y - start_y;
+                    if (dx * dx + dy * dy <= rad*rad) {
+                        const idx = (y * WIDTH + x) * 4;
+                        if (idx >= 0 && idx < backImageData.data.length) {
+                            backImageData.data[idx + 0] = r;
+                            backImageData.data[idx + 1] = g;
+                            backImageData.data[idx + 2] = b;
+                            backImageData.data[idx + 3] = a;
+                        }
+                    }
                 }
             }
         },
