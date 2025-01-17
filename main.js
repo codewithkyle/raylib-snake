@@ -101,7 +101,8 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
         wasm.instance.exports.game_keydown(e.keyCode);
     });
 
-    wasm.instance.exports.game_init();
+    var params = new URLSearchParams(window.location.search);
+    wasm.instance.exports.game_init(params.getAll("debug").includes("hitbox"));
     window.requestAnimationFrame(first);
 }).catch((e) => {
     console.error("Failed to instantiate WASM", e);

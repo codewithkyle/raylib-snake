@@ -47,15 +47,17 @@ static Player player = {
     .next_direction = 1,
 };
 static Vector2 player_velocity = {0,-CELL_SIZE};
-static bool game_over = false;
+bool game_over = false;
+bool debug_hitbox = false;
 
 __attribute__((import_module("env"), import_name("GameOver")))
 void GameOver(void);
 
-void game_init()
+void game_init(bool debug)
 {
     InitWindow(WIDTH, HEIGHT, "Snake");
     SetTargetFPS(60);
+    debug_hitbox = debug;
 }
 
 void render_background()
@@ -131,9 +133,28 @@ void game_update(f32 dt)
     player.cell.x = (int)(player.position.x/CELL_SIZE);
     player.cell.y = (int)(player.position.y/CELL_SIZE);
 
+    i32 xTileOffset = 0;
+    i32 yTileOffset = 0;
+    /*switch(player.direction){*/
+        /*case 1:*/
+            /*yTileOffset = -1;*/
+            /*break;*/
+        /*case 2:*/
+            /*xTileOffset = 1;*/
+            /*break;*/
+        /*case 3:*/
+            /*yTileOffset = 1;*/
+            /*break;*/
+        /*case 4:*/
+            /*xTileOffset = -1;*/
+            /*break;*/
+        /*default:*/
+            /*break;*/
+    /*}*/
+
     if (
-       (int)player.cell.x == (int)player.target.x &&
-       (int)player.cell.y == (int)player.target.y
+       (int)player.cell.x == (int)player.target.x + xTileOffset &&
+       (int)player.cell.y == (int)player.target.y + yTileOffset
     )
     {
         player.direction = player.next_direction;
@@ -175,16 +196,16 @@ void game_update(f32 dt)
     i32 yOffset = 0;
     switch(player.direction){
         case 1:
-            yOffset = -CELL_SIZE*0.25;
+            yOffset = -CELL_SIZE*0.5;
             break;
         case 2:
-            xOffset = CELL_SIZE*0.25;
+            xOffset = CELL_SIZE*0.5;
             break;
         case 3:
-            yOffset = CELL_SIZE*0.25;
+            yOffset = CELL_SIZE*0.5;
             break;
         case 4:
-            xOffset = -CELL_SIZE*0.25;
+            xOffset = -CELL_SIZE*0.5;
             break;
         default:
             break;
@@ -205,8 +226,11 @@ void game_update(f32 dt)
     if (!game_over)
     {
         // Player target cell
-        //DrawRectangle(player.target.x*CELL_SIZE, player.target.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, BLUE);
-        //DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
+        if (debug_hitbox)
+        {
+            DrawRectangle(player.target.x*CELL_SIZE, player.target.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, BLUE);
+            DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
+        }
 
         // Player
         DrawRectangle(player.position.x+xOffset, player.position.y+yOffset, CELL_SIZE, CELL_SIZE, RED);
@@ -224,7 +248,7 @@ void GameOver(){}
 
 int main(void)
 {
-    game_init();
+    game_init(false);
     while (!WindowShouldClose())
     {
         BeginDrawing();
