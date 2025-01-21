@@ -13,6 +13,12 @@ float acosf(float);
 float asinf(float);
 #include <raymath.h>
 
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+typedef unsigned int size_t;
+
+
 typedef unsigned char u8;
 typedef unsigned int u32;
 typedef unsigned long long u64;
@@ -24,15 +30,93 @@ typedef float f32;
 #define WIDTH (16*FACTOR)
 #define HEIGHT (9*FACTOR)
 #define CELL_SIZE 12
-#define SPEED 0.25f
+#define MAX_TIME 0.05f
+
+__attribute__((aligned(4))) unsigned char memory[65536]; // 64KB of linear memory
+unsigned char* brk = memory;
+
+__attribute__((import_module("env"), import_name("GameOver")))
+void GameOver(void);
+
+void* malloc(size_t size) {
+    size = (size + 3) & ~3;
+    if (brk + size > memory + sizeof(memory)) {
+        return NULL;
+    }
+    void* allocated = brk;
+    brk += size;
+    return allocated;
+}
+
+void free(void* ptr) {
+    // No-op for bump allocator
+}
+
+typedef struct Node {
+    Vector2 cell;
+    struct Node* previous;
+    struct Node* next;
+} Node;
 
 typedef struct {
-    Vector2 position;
+    Node* head;
+    Node* tail;
+    int length;
+} Snake;
+
+typedef struct {
     Vector2 cell;
     Vector2 target;
     u8 direction;
     u8 next_direction;
+    Snake* snake;
+    float timer;
 } Player;
+
+Snake* create_snake(Vector2 start_cell) {
+    Snake* snake = malloc(sizeof(Snake));
+    if (!snake) {
+        TraceLog(LOG_FATAL, "%s", "Failed to malloc Snake");
+    }
+    Node* initial_segment = malloc(sizeof(Node));
+    if (!initial_segment) {
+        TraceLog(LOG_FATAL, "%s", "Failed to malloc Node");
+    }
+    initial_segment->cell = start_cell;
+    initial_segment->previous = NULL;
+    initial_segment->next = NULL;
+    snake->head = initial_segment;
+    snake->tail = initial_segment;
+    snake->length = 1;
+    return snake;
+}
+
+void add_snake_segment(Snake* snake, Vector2 cell) {
+    Node* new_segment = malloc(sizeof(Node));
+    if (!new_segment) {
+        TraceLog(LOG_FATAL, "%s", "Failed to malloc Node");
+    }
+    new_segment->cell = cell;
+    new_segment->previous = snake->tail;
+    new_segment->next = NULL;
+    if (snake->tail) {
+        snake->tail->next = new_segment;
+    }
+    snake->tail = new_segment;
+    if (snake->length == 0) {
+        snake->head = new_segment;
+    }
+    snake->length++;
+}
+
+void move_snake(Snake* snake, Vector2 new_cell) {
+    Node* current = snake->tail;
+    while (current->previous) {
+        current->cell = current->previous->cell;
+        current = current->previous;
+    }
+    snake->head->cell = new_cell;
+}
 
 typedef struct {
     Vector2 position;
@@ -40,9 +124,9 @@ typedef struct {
 } Food;
 
 static Player player = { 
-    .position = { .x = CELL_SIZE*50, .y = CELL_SIZE*50 }, 
+    .timer = 0,
     .cell = { .x = 50, .y = 50 },
-    .target = { .x = 50, .y = 49 },
+    .target = { .x = 50, .y = 50 },
     .direction = 1,
     .next_direction = 1,
 };
@@ -50,14 +134,14 @@ static Vector2 player_velocity = {0,-CELL_SIZE};
 bool game_over = false;
 bool debug_hitbox = false;
 
-__attribute__((import_module("env"), import_name("GameOver")))
-void GameOver(void);
-
 void game_init(bool debug)
 {
+    debug_hitbox = debug;
+    player.snake = create_snake((Vector2){ .x = 50, .y = 50});
+    add_snake_segment(player.snake, (Vector2){ .x = 50, .y = 51});
+    add_snake_segment(player.snake, (Vector2){ .x = 50, .y = 52});
     InitWindow(WIDTH, HEIGHT, "Snake");
     SetTargetFPS(60);
-    debug_hitbox = debug;
 }
 
 void render_background()
@@ -129,97 +213,37 @@ void game_update(f32 dt)
     BeginDrawing();
     ClearBackground((Color){18,18,18,255});
 
-    player.position = Vector2Add(player.position, Vector2Scale(player_velocity, SPEED));
-    player.cell.x = (int)(player.position.x/CELL_SIZE);
-    player.cell.y = (int)(player.position.y/CELL_SIZE);
+    player.timer += dt;
 
-    i32 xTileOffset = 0;
-    i32 yTileOffset = 0;
-    /*switch(player.direction){*/
-        /*case 1:*/
-            /*yTileOffset = -1;*/
-            /*break;*/
-        /*case 2:*/
-            /*xTileOffset = 1;*/
-            /*break;*/
-        /*case 3:*/
-            /*yTileOffset = 1;*/
-            /*break;*/
-        /*case 4:*/
-            /*xTileOffset = -1;*/
-            /*break;*/
-        /*default:*/
-            /*break;*/
-    /*}*/
-
-    if (
-       (int)player.cell.x == (int)player.target.x + xTileOffset &&
-       (int)player.cell.y == (int)player.target.y + yTileOffset
-    )
-    {
+    if (player.timer >= MAX_TIME) {
+        player.timer = 0;
         player.direction = player.next_direction;
         switch(player.direction){
             case 1:
-                player_velocity.x = 0;
-                player_velocity.y = -CELL_SIZE;
-                player.target.x = player.cell.x;
-                player.target.y = player.cell.y - 1;
-                player.position.x = player.cell.x * CELL_SIZE;
+                player.target.y--;
                 break;
             case 2:
-                player_velocity.x = CELL_SIZE;
-                player_velocity.y = 0;
-                player.target.x = player.cell.x + 1;
-                player.target.y = player.cell.y;
-                player.position.y = player.cell.y * CELL_SIZE;
+                player.target.x++;
                 break;
             case 3:
-                player_velocity.x = 0;
-                player_velocity.y = CELL_SIZE;
-                player.target.x = player.cell.x;
-                player.target.y = player.cell.y + 1;
-                player.position.x = player.cell.x * CELL_SIZE;
+                player.target.y++;
                 break;
             case 4:
-                player_velocity.x = -CELL_SIZE;
-                player_velocity.y = 0;
-                player.target.x = player.cell.x - 1;
-                player.target.y = player.cell.y;
-                player.position.y = player.cell.y * CELL_SIZE;
+                player.target.x--;
                 break;
             default:
                 break;
         }
-    }
-
-    i32 xOffset = 0;
-    i32 yOffset = 0;
-    switch(player.direction){
-        case 1:
-            yOffset = -CELL_SIZE*0.5;
-            break;
-        case 2:
-            xOffset = CELL_SIZE*0.5;
-            break;
-        case 3:
-            yOffset = CELL_SIZE*0.5;
-            break;
-        case 4:
-            xOffset = -CELL_SIZE*0.5;
-            break;
-        default:
-            break;
-    }
-
-
-    if (
-        player.position.x < 0 || player.position.x >= WIDTH ||
-        player.position.y < 0 || player.position.y >= HEIGHT
-    )
-    {
-        game_over = true;
-        GameOver();
-    }
+        move_snake(player.snake, player.target);
+        if (
+            player.snake->head->cell.x < 0 || player.snake->head->cell.x >= (int)(WIDTH/CELL_SIZE) ||
+            player.snake->head->cell.y < 0 || player.snake->head->cell.y >= (int)(HEIGHT/CELL_SIZE)
+        )
+        {
+            game_over = true;
+            GameOver();
+        }
+    } 
 
     render_background();
 
@@ -232,13 +256,16 @@ void game_update(f32 dt)
             DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
         }
 
-        // Player
-        Vector2 displayPos = { .x = player.position.x+xOffset, .y = player.position.y+yOffset};
-        if (displayPos.x < 0) displayPos.x = 0;
-        else if (displayPos.x + CELL_SIZE - xOffset > WIDTH) displayPos.x = WIDTH - CELL_SIZE;
-        if (displayPos.y < 0) displayPos.y = 0;
-        else if (displayPos.y + CELL_SIZE - yOffset > HEIGHT) displayPos.y = HEIGHT - CELL_SIZE;
-        DrawRectangle(displayPos.x, displayPos.y, CELL_SIZE, CELL_SIZE, RED);
+        Node* current = player.snake->tail;
+        int idx = 1;
+        while (current) {
+            Vector2 displayPos = { .x = current->cell.x*CELL_SIZE, .y = current->cell.y*CELL_SIZE};
+            Color clr = GREEN;
+            if (idx == player.snake->length) clr = RED;
+            DrawRectangle(displayPos.x, displayPos.y, CELL_SIZE, CELL_SIZE, clr);
+            idx++;
+            current = current->previous;
+        }
     }
 
     // Food
