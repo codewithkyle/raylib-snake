@@ -233,7 +233,12 @@ void game_update(f32 dt)
         }
 
         // Player
-        DrawRectangle(player.position.x+xOffset, player.position.y+yOffset, CELL_SIZE, CELL_SIZE, RED);
+        Vector2 displayPos = { .x = player.position.x+xOffset, .y = player.position.y+yOffset};
+        if (displayPos.x < 0) displayPos.x = 0;
+        else if (displayPos.x + CELL_SIZE - xOffset > WIDTH) displayPos.x = WIDTH - CELL_SIZE;
+        if (displayPos.y < 0) displayPos.y = 0;
+        else if (displayPos.y + CELL_SIZE - yOffset > HEIGHT) displayPos.y = HEIGHT - CELL_SIZE;
+        DrawRectangle(displayPos.x, displayPos.y, CELL_SIZE, CELL_SIZE, RED);
     }
 
     // Food
