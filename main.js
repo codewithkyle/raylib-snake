@@ -1,14 +1,15 @@
+import { ManualRendering } from "./manual-rendering.js";
+import { Renderer } from "./renderer.js";
+
 const WIDTH = 7*180;
 const HEIGHT = 4*180;
 
 /** @type {number} */
 let previous = undefined;
 let wasm = undefined;
-/** @type {CanvasRenderingContext2D} */
-let ctx = undefined;
-/** @type {CanvasRenderingContext2D} */
-let backCtx = undefined;
-const backImageData = new ImageData(WIDTH, HEIGHT);
+
+/** @type {Renderer} */
+let renderer = undefined;
 
 /** @type {number} */
 let dt = undefined;
@@ -44,68 +45,45 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
         },
         ClearBackground: (color_ptr)=>{
             const buffer = wasm.instance.exports.memory.buffer;
-            const [r,g,b,a] = new Uint8Array(buffer, color_ptr, 4);
-            for (let i = 0; i < backImageData.data.length; i+=4){
-                backImageData.data[i+0] = r;
-                backImageData.data[i+1] = g;
-                backImageData.data[i+2] = b;
-                backImageData.data[i+3] = a;
-            }
+            const rgba = new Uint8Array(buffer, color_ptr, 4);
+            renderer.clear_background(...rgba);
         },
         DrawRectangle: (start_x, start_y, w, h, color_ptr) => {
             const buffer = wasm.instance.exports.memory.buffer;
-            const [r,g,b,a] = new Uint8Array(buffer, color_ptr, 4);
-            for (let y = 0; y < h; y++){
-                for (let x = 0; x < w; x++) {
-                    const idx = ((start_y+y) * WIDTH + (start_x + x)) * 4;
-                    backImageData.data[idx + 0] = r;
-                    backImageData.data[idx + 1] = g;
-                    backImageData.data[idx + 2] = b;
-                    backImageData.data[idx + 3] = a;
-                }
-            }
+            const rgba = new Uint8Array(buffer, color_ptr, 4);
+            renderer.draw_rectangle(...rgba, start_x, start_y, w, h);
         },
         DrawCircle: (start_x, start_y, rad, color_ptr) => {
             const buffer = wasm.instance.exports.memory.buffer;
-            const [r,g,b,a] = new Uint8Array(buffer, color_ptr, 4);
-            for (let y = start_y - rad; y <= start_y + rad; y++){
-                if (y < 0 || y >= HEIGHT) continue;
-                for (let x = start_x - rad; x <= start_x + rad; x++) {
-                    if (x < 0 || x >= WIDTH) continue;
-                    const dx = x - start_x;
-                    const dy = y - start_y;
-                    if (dx * dx + dy * dy <= rad*rad) {
-                        const idx = (y * WIDTH + x) * 4;
-                        if (idx >= 0 && idx < backImageData.data.length) {
-                            backImageData.data[idx + 0] = r;
-                            backImageData.data[idx + 1] = g;
-                            backImageData.data[idx + 2] = b;
-                            backImageData.data[idx + 3] = a;
-                        }
-                    }
-                }
-            }
+            const rgba = new Uint8Array(buffer, color_ptr, 4);
+            renderer.draw_circle(...rgba, start_x, start_y, rad);
         },
     }),
 }).then((wasmModule) => {
     console.log("WASM instantiated", wasmModule);
+    var params = new URLSearchParams(window.location.search);
+
     wasm = wasmModule;
     /** @type {HTMLCanvasElement} */
     const canvas = document.getElementById("canvas");
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
-    ctx = canvas.getContext("2d");
-    ctx.imageSmoothingEnabled = false;
-    const backCanvas = new OffscreenCanvas(WIDTH, HEIGHT);
-    backCtx = backCanvas.getContext("2d");
-    backCtx.imageSmoothingEnabled = false;
+
+    let target_renderer = params.get("renderer") ?? "manual";
+    switch(target_renderer) {
+        case "manual":
+            renderer = new ManualRendering(canvas, WIDTH, HEIGHT);
+            break;
+        default:
+            throw new Error(`Renderer ${target_renderer} not supported. Try 'manual' or '2d' or 'webgl'`);
+    }
+    if (!renderer) {
+        throw new Error("Failed to initalize renderer");
+    }
 
     window.addEventListener("keydown", (e)=>{
         wasm.instance.exports.game_keydown(e.keyCode);
     });
 
-    var params = new URLSearchParams(window.location.search);
-    wasm.instance.exports.game_init(params.getAll("debug").includes("hitbox"));
+    wasm.instance.exports.game_init(params.get("debug")?.includes("hitbox") ?? false);
     window.requestAnimationFrame(first);
 }).catch((e) => {
     console.error("Failed to instantiate WASM", e);
@@ -122,8 +100,7 @@ function next(timestamp) {
     if (doUpdate){
         if (!skipNextUpdate) {
             wasm.instance.exports.game_update(dt);
-            backCtx.putImageData(backImageData, 0, 0);
-            ctx.drawImage(backCtx.canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
+            renderer.render();
         } else {
             skipNextUpdate = false;
         }
