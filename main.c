@@ -185,16 +185,19 @@ void collide_with_self(Snake* snake) {
     Node* head = snake->head;
     Node* current = snake->head->next;
     Node* dead_node = NULL;
+    int length = 1;
     while (current) {
         if (
             head->cell.x == current->cell.x &&
             head->cell.y == current->cell.y
         ) {
+            snake->length = length;
             dead_node = current;
             current->previous->next = NULL;
             snake->tail = current->previous;
             break;
         } else {
+            length++;
             current = current->next;
         }
     }
