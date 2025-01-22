@@ -9,9 +9,9 @@
 - [x] Change direction at next cell
 - [x] Start with body of 3 units
 - [x] Chain player segment cell/pos on update (linked list?)
-- [ ] AABB food cell collision
-- [ ] Increase player segments when eating food
-- [ ] Spawn food at random cell
+- [x] AABB food cell collision
+- [x] Increase player segments when eating food
+- [x] Spawn food at random cell
 - [ ] Spawn player at random cell
 - [x] Kill player when hitting bounds
 - [x] Player ack respawn (window.confirm?)
@@ -23,11 +23,14 @@
     - [x] Rectangle
     - [x] Circle
     - [ ] Image
+    - [ ] Text
 - [ ] WebGL
     - [ ] Rectangle
     - [ ] Circle
     - [ ] Image
+    - [ ] Text
 - [ ] 2D
     - [ ] Rectangle
     - [ ] Circle
     - [ ] Image
+    - [ ] Text
