@@ -26,9 +26,9 @@ typedef int i32;
 typedef int b32;
 typedef float f32;
 
-#define FACTOR 80
-#define WIDTH (16*FACTOR)
-#define HEIGHT (9*FACTOR)
+#define FACTOR 180
+#define WIDTH (7*FACTOR)
+#define HEIGHT (4*FACTOR)
 #define CELL_SIZE 12
 #define MAX_TIME 0.05f
 
@@ -125,38 +125,37 @@ typedef struct {
 
 static Player player = { 
     .timer = 0,
-    .cell = { .x = 50, .y = 50 },
-    .target = { .x = 50, .y = 50 },
+    .cell = { .x = 20, .y = 20 },
+    .target = { .x = 20, .y = 20 },
     .direction = 1,
     .next_direction = 1,
 };
-static Vector2 player_velocity = {0,-CELL_SIZE};
 bool game_over = false;
 bool debug_hitbox = false;
 
 void game_init(bool debug)
 {
     debug_hitbox = debug;
-    player.snake = create_snake((Vector2){ .x = 50, .y = 50});
-    add_snake_segment(player.snake, (Vector2){ .x = 50, .y = 51});
-    add_snake_segment(player.snake, (Vector2){ .x = 50, .y = 52});
+    player.snake = create_snake((Vector2){ .x = 20, .y = 20});
+    add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 21});
+    add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 22});
     InitWindow(WIDTH, HEIGHT, "Snake");
     SetTargetFPS(60);
 }
 
 void render_background()
 {
-    for (i32 y = 0; y < HEIGHT; y+=CELL_SIZE)
+    for (i32 y = 0; y < HEIGHT/CELL_SIZE; y++)
     {
-        for(i32 x = 0; x < WIDTH; x+=CELL_SIZE)
+        for(i32 x = 0; x < WIDTH/CELL_SIZE; x++)
         {
-            if (((x/CELL_SIZE)+(y/CELL_SIZE))%2 == 0)
+            if ((x+y)%2 == 0)
             {
-                DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){18,18,18,255});
+                DrawRectangle(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, (Color){18,18,18,255});
             }
             else
             {
-                DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){24,24,24,255});
+                DrawRectangle(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, (Color){24,24,24,255});
             }
         }
     }

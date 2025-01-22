@@ -1,5 +1,5 @@
-const WIDTH = 16*80;
-const HEIGHT = 9*80;
+const WIDTH = 7*180;
+const HEIGHT = 4*180;
 
 /** @type {number} */
 let previous = undefined;
