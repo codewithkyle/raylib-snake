@@ -31,6 +31,7 @@ typedef float f32;
 #define HEIGHT (4*FACTOR)
 #define CELL_SIZE 12
 #define MAX_TIME 0.05f
+#define MAX_NODES (WIDTH/CELL_SIZE)*(HEIGHT/CELL_SIZE)
 
 __attribute__((aligned(4))) unsigned char memory[65536]; // 64KB of linear memory
 unsigned char* brk = memory;
@@ -61,6 +62,25 @@ typedef struct Node {
     struct Node* previous;
     struct Node* next;
 } Node;
+static Node node_pool[MAX_NODES];
+static unsigned char node_used[MAX_NODES] = {0};
+
+Node* allocate_node(void) {
+    for (int i = 0; i < MAX_NODES; i++) {
+        if (!node_used[i]) {
+            node_used[i] = 1;
+            return &node_pool[i];
+        }
+    }
+    return NULL;
+}
+
+void free_node(Node* ptr) {
+    if (ptr >= node_pool && ptr < node_pool + MAX_NODES) {
+        int idx = (int)(ptr - node_pool);
+        node_used[idx] = 0;
+    }
+}
 
 typedef struct {
     Node* head;
@@ -97,7 +117,7 @@ Snake* create_snake(Vector2 start_cell) {
 }
 
 void add_snake_segment(Snake* snake, Vector2 cell) {
-    Node* new_segment = malloc(sizeof(Node));
+    Node* new_segment = allocate_node();
     if (!new_segment) {
         TraceLog(LOG_FATAL, "%s", "Failed to malloc Node");
     }
@@ -164,16 +184,23 @@ bool collide_with_snake(Snake* snake, Vector2 cell) {
 void collide_with_self(Snake* snake) {
     Node* head = snake->head;
     Node* current = snake->head->next;
+    Node* dead_node = NULL;
     while (current) {
         if (
             head->cell.x == current->cell.x &&
             head->cell.y == current->cell.y
         ) {
+            dead_node = current;
             current->previous->next = NULL;
             snake->tail = current->previous;
             break;
+        } else {
+            current = current->next;
         }
-        current = current->next;
+    }
+    while (dead_node) {
+        dead_node = dead_node->next;
+        free_node(dead_node);
     }
 }
 
@@ -203,8 +230,6 @@ void game_init(bool debug)
 {
     debug_hitbox = debug;
     player.snake = create_snake((Vector2){ .x = 20, .y = 20});
-    //add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 21});
-    //add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 22});
     create_food();
     InitWindow(WIDTH, HEIGHT, "Snake");
     SetTargetFPS(60);
