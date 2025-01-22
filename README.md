@@ -15,6 +15,12 @@
 - [ ] Spawn player at random cell
 - [x] Kill player when hitting bounds
 - [x] Player ack respawn (window.confirm?)
+- [ ] Display score (snek lenght)
+- [ ] Display FPS
+- [ ] Red transparent overlay & death message
+    - [ ] High score
+    - [ ] Score
+    - [ ] Longest snek
 
 ## Render targets
 
