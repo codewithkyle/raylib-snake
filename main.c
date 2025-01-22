@@ -57,6 +57,7 @@ void free(void* ptr) {
 
 typedef struct Node {
     Vector2 cell;
+    int direction;
     struct Node* previous;
     struct Node* next;
 } Node;
@@ -88,6 +89,7 @@ Snake* create_snake(Vector2 start_cell) {
     initial_segment->cell = start_cell;
     initial_segment->previous = NULL;
     initial_segment->next = NULL;
+    initial_segment->direction = 1;
     snake->head = initial_segment;
     snake->tail = initial_segment;
     snake->length = 1;
@@ -102,6 +104,7 @@ void add_snake_segment(Snake* snake, Vector2 cell) {
     new_segment->cell = cell;
     new_segment->previous = snake->tail;
     new_segment->next = NULL;
+    new_segment->direction = snake->tail->direction;
     if (snake->tail) {
         snake->tail->next = new_segment;
     }
@@ -116,6 +119,7 @@ void move_snake(Snake* snake, Vector2 new_cell) {
     Node* current = snake->tail;
     while (current->previous) {
         current->cell = current->previous->cell;
+        current->direction = current->previous->direction;
         current = current->previous;
     }
     snake->head->cell = new_cell;
@@ -123,7 +127,23 @@ void move_snake(Snake* snake, Vector2 new_cell) {
 
 void grow_snake(Snake* snake) {
     Node* tail = snake->tail;
-    Vector2 cell = { .x = tail->cell.x, .y = tail->cell.y++ };
+    Vector2 cell = { .x = tail->cell.x, .y = tail->cell.y };
+    switch(snake->tail->direction){
+            case 1:
+                cell.y++;
+                break;
+            case 2:
+                cell.x--;
+                break;
+            case 3:
+                cell.y--;
+                break;
+            case 4:
+                cell.x++;
+                break;
+            default:
+                break;
+        }
     add_snake_segment(snake, cell);
 }
 
@@ -223,9 +243,10 @@ void game_update(f32 dt)
     player.timer += dt;
     if (player.timer >= MAX_TIME) {
         player.timer = 0;
-        move_snake(player.snake, player.target);
-        player.cell = player.target;
         player.direction = player.next_direction;
+        move_snake(player.snake, player.target);
+        player.snake->head->direction = player.direction;
+        player.cell = player.target;
         switch(player.direction){
             case 1:
                 player.target.y--;
