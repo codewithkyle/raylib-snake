@@ -25,7 +25,7 @@
 ## Render targets
 
 - [ ] Set target based on `&target=` query param
-- [ ] Custom CPU raterization
+- [ ] Manual raterization
     - [x] Rectangle
     - [x] Circle
     - [ ] Image
@@ -36,7 +36,7 @@
     - [ ] Image
     - [ ] Text
 - [ ] 2D
-    - [ ] Rectangle
-    - [ ] Circle
+    - [x] Rectangle
+    - [x] Circle
     - [ ] Image
     - [ ] Text
