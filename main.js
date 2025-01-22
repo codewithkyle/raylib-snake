@@ -1,4 +1,5 @@
 import { ManualRendering } from "./manual-rendering.js";
+import { TwoDRendering } from "./2d-rendering.js";
 import { Renderer } from "./renderer.js";
 
 const WIDTH = 7*180;
@@ -69,6 +70,9 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
 
     let target_renderer = params.get("renderer") ?? "manual";
     switch(target_renderer) {
+        case "2d":
+            renderer = new TwoDRendering(canvas, WIDTH, HEIGHT);
+            break;
         case "manual":
             renderer = new ManualRendering(canvas, WIDTH, HEIGHT);
             break;
