@@ -147,6 +147,36 @@ void grow_snake(Snake* snake) {
     add_snake_segment(snake, cell);
 }
 
+bool collide_with_snake(Snake* snake, Vector2 cell) {
+    Node* current = snake->head;
+    while (current->next) {
+        if (
+            current->cell.x == cell.x &&
+            current->cell.y == cell.y
+        ) {
+            return true;
+        }
+        current = current->next;
+    }
+    return false;
+}
+
+void collide_with_self(Snake* snake) {
+    Node* head = snake->head;
+    Node* current = snake->head->next;
+    while (current) {
+        if (
+            head->cell.x == current->cell.x &&
+            head->cell.y == current->cell.y
+        ) {
+            current->previous->next = NULL;
+            snake->tail = current->previous;
+            break;
+        }
+        current = current->next;
+    }
+}
+
 typedef struct {
     Vector2 position;
     Vector2 cell;
@@ -173,8 +203,8 @@ void game_init(bool debug)
 {
     debug_hitbox = debug;
     player.snake = create_snake((Vector2){ .x = 20, .y = 20});
-    add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 21});
-    add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 22});
+    //add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 21});
+    //add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 22});
     create_food();
     InitWindow(WIDTH, HEIGHT, "Snake");
     SetTargetFPS(60);
@@ -279,6 +309,7 @@ void game_update(f32 dt)
             grow_snake(player.snake);
             create_food();
         }
+        collide_with_self(player.snake);
     } 
 
     render_background();
@@ -294,15 +325,15 @@ void game_update(f32 dt)
 
     if (!game_over)
     {
-        Node* current = player.snake->tail;
-        int idx = 1;
+        Node* current = player.snake->head;
+        int idx = 0;
         while (current) {
             Vector2 displayPos = { .x = current->cell.x*CELL_SIZE, .y = current->cell.y*CELL_SIZE};
             Color clr = GREEN;
-            if (idx == player.snake->length) clr = RED;
+            if (idx == 0) clr = RED;
             DrawRectangle(displayPos.x, displayPos.y, CELL_SIZE, CELL_SIZE, clr);
             idx++;
-            current = current->previous;
+            current = current->next;
         }
     }
 
