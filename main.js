@@ -1,4 +1,5 @@
 import { ManualRendering } from "./manual-rendering.js";
+import { Renderer } from "./renderer.js";
 
 const WIDTH = 7*180;
 const HEIGHT = 4*180;
@@ -6,6 +7,8 @@ const HEIGHT = 4*180;
 /** @type {number} */
 let previous = undefined;
 let wasm = undefined;
+
+/** @type {Renderer} */
 let renderer = undefined;
 
 /** @type {number} */
@@ -64,7 +67,7 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
     /** @type {HTMLCanvasElement} */
     const canvas = document.getElementById("canvas");
 
-    let target_renderer = r = params.get("renderer") ?? "manual";
+    let target_renderer = params.get("renderer") ?? "manual";
     switch(target_renderer) {
         case "manual":
             renderer = new ManualRendering(canvas, WIDTH, HEIGHT);
