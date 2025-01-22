@@ -26,9 +26,9 @@ typedef int i32;
 typedef int b32;
 typedef float f32;
 
-#define FACTOR 80
-#define WIDTH (16*FACTOR)
-#define HEIGHT (9*FACTOR)
+#define FACTOR 180
+#define WIDTH (7*FACTOR)
+#define HEIGHT (4*FACTOR)
 #define CELL_SIZE 12
 #define MAX_TIME 0.05f
 
@@ -37,6 +37,9 @@ unsigned char* brk = memory;
 
 __attribute__((import_module("env"), import_name("GameOver")))
 void GameOver(void);
+
+__attribute__((import_module("env"), import_name("RandomInt")))
+int RandomInt(int min, int max);
 
 void* malloc(size_t size) {
     size = (size + 3) & ~3;
@@ -54,6 +57,7 @@ void free(void* ptr) {
 
 typedef struct Node {
     Vector2 cell;
+    int direction;
     struct Node* previous;
     struct Node* next;
 } Node;
@@ -85,6 +89,7 @@ Snake* create_snake(Vector2 start_cell) {
     initial_segment->cell = start_cell;
     initial_segment->previous = NULL;
     initial_segment->next = NULL;
+    initial_segment->direction = 1;
     snake->head = initial_segment;
     snake->tail = initial_segment;
     snake->length = 1;
@@ -99,6 +104,7 @@ void add_snake_segment(Snake* snake, Vector2 cell) {
     new_segment->cell = cell;
     new_segment->previous = snake->tail;
     new_segment->next = NULL;
+    new_segment->direction = snake->tail->direction;
     if (snake->tail) {
         snake->tail->next = new_segment;
     }
@@ -113,9 +119,62 @@ void move_snake(Snake* snake, Vector2 new_cell) {
     Node* current = snake->tail;
     while (current->previous) {
         current->cell = current->previous->cell;
+        current->direction = current->previous->direction;
         current = current->previous;
     }
     snake->head->cell = new_cell;
+}
+
+void grow_snake(Snake* snake) {
+    Node* tail = snake->tail;
+    Vector2 cell = { .x = tail->cell.x, .y = tail->cell.y };
+    switch(snake->tail->direction){
+            case 1:
+                cell.y++;
+                break;
+            case 2:
+                cell.x--;
+                break;
+            case 3:
+                cell.y--;
+                break;
+            case 4:
+                cell.x++;
+                break;
+            default:
+                break;
+        }
+    add_snake_segment(snake, cell);
+}
+
+bool collide_with_snake(Snake* snake, Vector2 cell) {
+    Node* current = snake->head;
+    while (current->next) {
+        if (
+            current->cell.x == cell.x &&
+            current->cell.y == cell.y
+        ) {
+            return true;
+        }
+        current = current->next;
+    }
+    return false;
+}
+
+void collide_with_self(Snake* snake) {
+    Node* head = snake->head;
+    Node* current = snake->head->next;
+    while (current) {
+        if (
+            head->cell.x == current->cell.x &&
+            head->cell.y == current->cell.y
+        ) {
+            current->previous->next = NULL;
+            snake->tail = current->previous;
+            break;
+        }
+        current = current->next;
+    }
 }
 
 typedef struct {
@@ -125,50 +184,48 @@ typedef struct {
 
 static Player player = { 
     .timer = 0,
-    .cell = { .x = 50, .y = 50 },
-    .target = { .x = 50, .y = 50 },
+    .cell = { .x = 20, .y = 20 },
+    .target = { .x = 20, .y = 20 },
     .direction = 1,
     .next_direction = 1,
 };
-static Vector2 player_velocity = {0,-CELL_SIZE};
+Food food = {0};
 bool game_over = false;
 bool debug_hitbox = false;
+
+void create_food()
+{
+    food.cell = (Vector2){ .x = RandomInt(0, WIDTH/CELL_SIZE), .y = RandomInt(0, HEIGHT/CELL_SIZE) };
+    food.position = (Vector2){ .x = CELL_SIZE * food.cell.x + (CELL_SIZE*0.5), .y = CELL_SIZE * food.cell.y + (CELL_SIZE*0.5) };
+}
 
 void game_init(bool debug)
 {
     debug_hitbox = debug;
-    player.snake = create_snake((Vector2){ .x = 50, .y = 50});
-    add_snake_segment(player.snake, (Vector2){ .x = 50, .y = 51});
-    add_snake_segment(player.snake, (Vector2){ .x = 50, .y = 52});
+    player.snake = create_snake((Vector2){ .x = 20, .y = 20});
+    //add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 21});
+    //add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 22});
+    create_food();
     InitWindow(WIDTH, HEIGHT, "Snake");
     SetTargetFPS(60);
 }
 
 void render_background()
 {
-    for (i32 y = 0; y < HEIGHT; y+=CELL_SIZE)
+    for (i32 y = 0; y < HEIGHT/CELL_SIZE; y++)
     {
-        for(i32 x = 0; x < WIDTH; x+=CELL_SIZE)
+        for(i32 x = 0; x < WIDTH/CELL_SIZE; x++)
         {
-            if (((x/CELL_SIZE)+(y/CELL_SIZE))%2 == 0)
+            if ((x+y)%2 == 0)
             {
-                DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){18,18,18,255});
+                DrawRectangle(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, (Color){18,18,18,255});
             }
             else
             {
-                DrawRectangle(x, y, CELL_SIZE, CELL_SIZE, (Color){24,24,24,255});
+                DrawRectangle(x*CELL_SIZE, y*CELL_SIZE, CELL_SIZE, CELL_SIZE, (Color){24,24,24,255});
             }
         }
     }
-}
-
-Food create_food(i32 cell_x, i32 cell_y)
-{
-    Food food = { 
-        .cell = { .x = cell_x, .y = cell_y }, 
-        .position = { .x = CELL_SIZE * cell_x - (CELL_SIZE*0.5) - 1, .y = CELL_SIZE * cell_y - (CELL_SIZE*0.5) - 1 } 
-    };
-    return food;
 }
 
 void game_keydown(i32 key)
@@ -214,10 +271,12 @@ void game_update(f32 dt)
     ClearBackground((Color){18,18,18,255});
 
     player.timer += dt;
-
     if (player.timer >= MAX_TIME) {
         player.timer = 0;
         player.direction = player.next_direction;
+        move_snake(player.snake, player.target);
+        player.snake->head->direction = player.direction;
+        player.cell = player.target;
         switch(player.direction){
             case 1:
                 player.target.y--;
@@ -234,7 +293,6 @@ void game_update(f32 dt)
             default:
                 break;
         }
-        move_snake(player.snake, player.target);
         if (
             player.snake->head->cell.x < 0 || player.snake->head->cell.x >= (int)(WIDTH/CELL_SIZE) ||
             player.snake->head->cell.y < 0 || player.snake->head->cell.y >= (int)(HEIGHT/CELL_SIZE)
@@ -243,40 +301,48 @@ void game_update(f32 dt)
             game_over = true;
             GameOver();
         }
+        if (
+            player.cell.x == food.cell.x &&
+            player.cell.y == food.cell.y
+        )
+        {
+            grow_snake(player.snake);
+            create_food();
+        }
+        collide_with_self(player.snake);
     } 
 
     render_background();
-
-    if (!game_over)
+    if (debug_hitbox)
     {
-        // Player target cell
-        if (debug_hitbox)
-        {
-            DrawRectangle(player.target.x*CELL_SIZE, player.target.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, BLUE);
-            DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
-        }
-
-        Node* current = player.snake->tail;
-        int idx = 1;
-        while (current) {
-            Vector2 displayPos = { .x = current->cell.x*CELL_SIZE, .y = current->cell.y*CELL_SIZE};
-            Color clr = GREEN;
-            if (idx == player.snake->length) clr = RED;
-            DrawRectangle(displayPos.x, displayPos.y, CELL_SIZE, CELL_SIZE, clr);
-            idx++;
-            current = current->previous;
-        }
+        DrawRectangle(player.target.x*CELL_SIZE-1, player.target.y*CELL_SIZE-1, CELL_SIZE+2, CELL_SIZE+2, BLUE);
+        DrawRectangle(player.cell.x*CELL_SIZE-1, player.cell.y*CELL_SIZE-1, CELL_SIZE+2, CELL_SIZE+2, ORANGE);
+        DrawRectangle(food.cell.x*CELL_SIZE-1, food.cell.y*CELL_SIZE-1, CELL_SIZE+2, CELL_SIZE+2, PINK);
     }
 
     // Food
-    Food food = create_food(10, 10);
     DrawCircle(food.position.x, food.position.y, CELL_SIZE*0.5, GREEN);
+
+    if (!game_over)
+    {
+        Node* current = player.snake->head;
+        int idx = 0;
+        while (current) {
+            Vector2 displayPos = { .x = current->cell.x*CELL_SIZE, .y = current->cell.y*CELL_SIZE};
+            Color clr = GREEN;
+            if (idx == 0) clr = RED;
+            DrawRectangle(displayPos.x, displayPos.y, CELL_SIZE, CELL_SIZE, clr);
+            idx++;
+            current = current->next;
+        }
+    }
 
     EndDrawing();
 }
 
 #ifdef PLATFORM_NATIVE
 void GameOver(){}
+int RandomInt(int min, int max){}
 
 int main(void)
 {

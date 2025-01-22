@@ -3,23 +3,20 @@ body {
     display: block;
     width: 100vw;
     height: 100vh;
-    background-color: #181818;
+    background-color: #0f0f0f;
 }
 canvas {
     position: absolute;
-    aspect-ratio: 16/9;
-    /*top: 50%;*/
-    /*left: 50%;*/
-    /*transform: translate(-50%, -50%);*/
+    aspect-ratio: 7/4;
 }
-@media (min-aspect-ratio: 16/9) {
+@media (min-aspect-ratio: 7/4) {
     canvas{
         height: 100%;
         left: 50%;
         transform: translate(-50%, 0%);
     }
 }
-@media not (min-aspect-ratio: 16/9) {
+@media not (min-aspect-ratio: 7/4) {
     canvas {
         width: 100%;
         top: 50%;

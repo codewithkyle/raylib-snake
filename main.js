@@ -1,5 +1,5 @@
-const WIDTH = 16*80;
-const HEIGHT = 9*80;
+const WIDTH = 7*180;
+const HEIGHT = 4*180;
 
 /** @type {number} */
 let previous = undefined;
@@ -31,6 +31,9 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
         GameOver: ()=>{
             window.alert("Game Over! Restart?");
             location.reload();
+        },
+        RandomInt: (min, max) => {
+            return Math.floor(Math.random() * (max - min)) + min;
         },
         BeginDrawing: ()=>{},
         EndDrawing: ()=>{},
