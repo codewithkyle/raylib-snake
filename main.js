@@ -32,6 +32,9 @@ WebAssembly.instantiateStreaming(fetch("main.wasm"), {
             window.alert("Game Over! Restart?");
             location.reload();
         },
+        RandomInt: (min, max) => {
+            return Math.floor(Math.random() * (max - min)) + min;
+        },
         BeginDrawing: ()=>{},
         EndDrawing: ()=>{},
         InitWindow: (width, height, text_ptr) => {

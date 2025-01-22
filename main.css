@@ -3,7 +3,7 @@ body {
     display: block;
     width: 100vw;
     height: 100vh;
-    background-color: #181818;
+    background-color: #0f0f0f;
 }
 canvas {
     position: absolute;

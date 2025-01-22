@@ -38,6 +38,9 @@ unsigned char* brk = memory;
 __attribute__((import_module("env"), import_name("GameOver")))
 void GameOver(void);
 
+__attribute__((import_module("env"), import_name("RandomInt")))
+int RandomInt(int min, int max);
+
 void* malloc(size_t size) {
     size = (size + 3) & ~3;
     if (brk + size > memory + sizeof(memory)) {
@@ -118,6 +121,12 @@ void move_snake(Snake* snake, Vector2 new_cell) {
     snake->head->cell = new_cell;
 }
 
+void grow_snake(Snake* snake) {
+    Node* tail = snake->tail;
+    Vector2 cell = { .x = tail->cell.x, .y = tail->cell.y++ };
+    add_snake_segment(snake, cell);
+}
+
 typedef struct {
     Vector2 position;
     Vector2 cell;
@@ -130,8 +139,15 @@ static Player player = {
     .direction = 1,
     .next_direction = 1,
 };
+Food food = {0};
 bool game_over = false;
 bool debug_hitbox = false;
+
+void create_food()
+{
+    food.cell = (Vector2){ .x = RandomInt(0, WIDTH/CELL_SIZE), .y = RandomInt(0, HEIGHT/CELL_SIZE) };
+    food.position = (Vector2){ .x = CELL_SIZE * food.cell.x + (CELL_SIZE*0.5), .y = CELL_SIZE * food.cell.y + (CELL_SIZE*0.5) };
+}
 
 void game_init(bool debug)
 {
@@ -139,6 +155,7 @@ void game_init(bool debug)
     player.snake = create_snake((Vector2){ .x = 20, .y = 20});
     add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 21});
     add_snake_segment(player.snake, (Vector2){ .x = 20, .y = 22});
+    create_food();
     InitWindow(WIDTH, HEIGHT, "Snake");
     SetTargetFPS(60);
 }
@@ -159,15 +176,6 @@ void render_background()
             }
         }
     }
-}
-
-Food create_food(i32 cell_x, i32 cell_y)
-{
-    Food food = { 
-        .cell = { .x = cell_x, .y = cell_y }, 
-        .position = { .x = CELL_SIZE * cell_x - (CELL_SIZE*0.5) - 1, .y = CELL_SIZE * cell_y - (CELL_SIZE*0.5) - 1 } 
-    };
-    return food;
 }
 
 void game_keydown(i32 key)
@@ -213,9 +221,10 @@ void game_update(f32 dt)
     ClearBackground((Color){18,18,18,255});
 
     player.timer += dt;
-
     if (player.timer >= MAX_TIME) {
         player.timer = 0;
+        move_snake(player.snake, player.target);
+        player.cell = player.target;
         player.direction = player.next_direction;
         switch(player.direction){
             case 1:
@@ -233,7 +242,6 @@ void game_update(f32 dt)
             default:
                 break;
         }
-        move_snake(player.snake, player.target);
         if (
             player.snake->head->cell.x < 0 || player.snake->head->cell.x >= (int)(WIDTH/CELL_SIZE) ||
             player.snake->head->cell.y < 0 || player.snake->head->cell.y >= (int)(HEIGHT/CELL_SIZE)
@@ -242,19 +250,29 @@ void game_update(f32 dt)
             game_over = true;
             GameOver();
         }
+        if (
+            player.cell.x == food.cell.x &&
+            player.cell.y == food.cell.y
+        )
+        {
+            grow_snake(player.snake);
+            create_food();
+        }
     } 
 
     render_background();
+    if (debug_hitbox)
+    {
+        DrawRectangle(player.target.x*CELL_SIZE-1, player.target.y*CELL_SIZE-1, CELL_SIZE+2, CELL_SIZE+2, BLUE);
+        DrawRectangle(player.cell.x*CELL_SIZE-1, player.cell.y*CELL_SIZE-1, CELL_SIZE+2, CELL_SIZE+2, ORANGE);
+        DrawRectangle(food.cell.x*CELL_SIZE-1, food.cell.y*CELL_SIZE-1, CELL_SIZE+2, CELL_SIZE+2, PINK);
+    }
+
+    // Food
+    DrawCircle(food.position.x, food.position.y, CELL_SIZE*0.5, GREEN);
 
     if (!game_over)
     {
-        // Player target cell
-        if (debug_hitbox)
-        {
-            DrawRectangle(player.target.x*CELL_SIZE, player.target.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, BLUE);
-            DrawRectangle(player.cell.x*CELL_SIZE, player.cell.y*CELL_SIZE, CELL_SIZE, CELL_SIZE, ORANGE);
-        }
-
         Node* current = player.snake->tail;
         int idx = 1;
         while (current) {
@@ -267,15 +285,12 @@ void game_update(f32 dt)
         }
     }
 
-    // Food
-    Food food = create_food(10, 10);
-    DrawCircle(food.position.x, food.position.y, CELL_SIZE*0.5, GREEN);
-
     EndDrawing();
 }
 
 #ifdef PLATFORM_NATIVE
 void GameOver(){}
+int RandomInt(int min, int max){}
 
 int main(void)
 {
